@@ -147,6 +147,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="objLoader.cpp" />
+    <ClCompile Include="waveIn.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="objLoader.h" />
+    <ClInclude Include="waveIn.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
