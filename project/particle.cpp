@@ -6,6 +6,17 @@
 
 const GLfloat Pi = 3.1415926f;
 
+void moveParticle(Particle *p, float millis) {
+	p->prevPos = p->pos;
+	Vector3 prevVelocity = p->velocity;
+	p->velocity.x += p->acceleration.x * millis;
+	p->velocity.y += p->acceleration.y * millis;
+	p->velocity.z += p->acceleration.z * millis;
+	p->pos.x += 0.5 * (prevVelocity.x + p->velocity.x) * millis;
+	p->pos.y += 0.5 * (prevVelocity.y + p->velocity.y) * millis;
+	p->pos.z += 0.5 * (prevVelocity.z + p->velocity.z) * millis;
+}
+
 ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 	this->particleList = NULL;
 	this->particleBuffer = NULL;
@@ -18,8 +29,8 @@ ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 	this->particleTexture = LoadGLTexture("color.bmp");
 	//this->particleModel = LoadModel("model.obj");
 	this->particleModel = NULL;
-	this->initialVelocity = 13;
-	this->elevation = Pi / 2.0*75.0 / 90.0;
+	this->initialVelocity = 12;
+	this->elevation = Pi / 180.0 * 75.0;
 }
 
 void ParticleSystem::update(float elapsedTime) {
@@ -27,27 +38,23 @@ void ParticleSystem::update(float elapsedTime) {
 	while(p) {
 		//printf("update x:%f y:%f z:%f\n", p->pos.x, p->pos.y, p->pos.z);
 		Particle *next = p->next;
-		float millis = elapsedTime;
-		p->prevPos = p->pos;
-		Vector3 prevVelocity = p->velocity;
-		p->velocity.x += p->acceleration.x * millis;
-		p->velocity.y += p->acceleration.y * millis;
-		p->velocity.z += p->acceleration.z * millis;
-		p->pos.x += 0.5 * (prevVelocity.x + p->velocity.x) * millis;
-		p->pos.y += 0.5 * (prevVelocity.y + p->velocity.y) * millis;
-		p->pos.z += 0.5 * (prevVelocity.z + p->velocity.z) * millis;
+		moveParticle(p, elapsedTime);
+		p->lifetime += elapsedTime;
+		p->color[3] = pow(1 - p->lifetime / p->totalLifetime, 2);
 		float downBound = 0;
-		if (p->pos.z <= downBound) {
+		//if (p->pos.z <= downBound) {
+		if (p->lifetime > p->totalLifetime) {
 			this->deleteParticle(p);
 		}
 		p = next;
 	}
 	this->lastUpdateTime += elapsedTime;
-	float count = (int)((this->lastUpdateTime - this->accumulatedTime) * this->newParticlesPerSecond);
+	float delayTime = this->lastUpdateTime - this->accumulatedTime;
+	int count = (int)(delayTime * this->newParticlesPerSecond);
 	//printf("count %f\n", count);
 	if (count > 0) {
 		for (int i = 0; i < count; ++i) {
-			this->addParticle();
+			this->addParticle(5*delayTime / count * i);
 		}
 		this->accumulatedTime = this->lastUpdateTime;
 	}
@@ -55,17 +62,35 @@ void ParticleSystem::update(float elapsedTime) {
 
 void ParticleSystem::render() {
 	for (Particle *p = this->particleList; p; p = p->next) {
+		glDisable(GL_TEXTURE_2D);
 		glPushMatrix();
-		glColor3f(p->color[0], p->color[1], p->color[2]);
+		glDepthMask(GL_FALSE);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glColor4f(p->color[0], p->color[1], p->color[2], p->color[3]);
+		GLfloat ambientAndDiffuse[] = { 0.2, 0.2, 0.2, p->color[3] };    // 漫反射光
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, ambientAndDiffuse);
+		GLfloat specular[] = { 0.8,0.8,0.8,p->color[3] };   // 镜面反射光
+		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+		GLfloat shininess = 0.8;    // 镜面反射系数
+		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
 		glTranslatef(this->origin.x + p->pos.x, this->origin.y + p->pos.y, this->origin.z + p->pos.z);
 		glBindTexture(GL_TEXTURE_2D, p->texture);
+		/*
+		glBegin(GL_POLYGON);
+		glVertex3f(0,0,0);
+		glVertex3f(0,0.3,0);
+		glVertex3f(0.3,0,0);
+		glEnd();
+		*/
 		if (p->model != NULL) {
 			p->model->draw(0.05);
 		}
 		else {
-			glutSolidSphere(0.02, 10, 10);
+			glutSolidSphere(0.03, 10, 10);
 		}
+		glDepthMask(GL_TRUE);
 		glPopMatrix();
+		glEnable(GL_TEXTURE_2D);
 	}
 }
 
@@ -109,27 +134,34 @@ ParticleSystem::~ParticleSystem() {
 	this->killSystem();
 }
 
-void ParticleSystem::addParticle() {
+void ParticleSystem::addParticle(float delay) {
+	//printf("delay %f\n", delay);
 	Particle *p = this->particleBuffer;
 	if (!p) {
 		return;
 	}
 	this->particleBuffer = p->next;
 
-	p->pos = { 0.1f*rand() / RAND_MAX, 0.1f*rand() / RAND_MAX, 0.5f*rand() / RAND_MAX };
-	float theta = (2 * Pi * rand() * 1.0) / RAND_MAX;
+	int num = RAND_MAX - RAND_MAX + 4;
+	float disturbance = Pi / 180.0 * (rand()*1.0 / RAND_MAX * 2 - 1);
+	float theta = (2.0 * Pi) * (rand() % num) / num + disturbance;
 	p->model = this->particleModel;
 	p->texture = this->particleTexture;
-	float v_horizontal = this->initialVelocity * cos(this->elevation);
-	float v_vertical = this->initialVelocity * sin(this->elevation);
+	float v_horizontal = this->initialVelocity * cos(this->elevation + disturbance);
+	float v_vertical = this->initialVelocity * sin(this->elevation + disturbance);
 	//p->velocity = {2*cos(theta),2*sin(theta),12};
 	p->velocity = { v_horizontal * cos(theta), v_horizontal * sin(theta), v_vertical };
+	//p->pos = { 0.1f*rand() / RAND_MAX, 0.1f*rand() / RAND_MAX, 0.1f*rand() / RAND_MAX };
+	p->pos = { 0, 0, 0 };
+	moveParticle(p, delay);
 	p->acceleration = this->force;
 	p->prevPos = p->pos;
+	p->totalLifetime = abs(2.0*v_vertical / p->acceleration.z);
+	p->lifetime = 0;
 	p->color[0] = 0.9;
 	p->color[1] = 0.9;
 	p->color[2] = 0.9;
-	p->color[3] = 0;
+	p->color[3] = 1;
 
 	p->next = this->particleList;
 	p->prev = NULL;

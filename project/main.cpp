@@ -18,6 +18,12 @@ WaveIn *waveIn = NULL;
 
 /* =============================================================== */
 
+float f(float volume) {
+	float x = (volume + 96.0) / 96.0;
+	float y = 2.0/Pi * (atan(pow(x, 0.4)*2 - 1) + Pi/4.0);
+	return y;
+}
+
 int pcm_db_count(const unsigned char* ptr, size_t size) {
 	int ndb = 0;
 
@@ -50,8 +56,8 @@ static BOOL CALLBACK WaveInProc(HWAVEIN hwo, UINT uMsg, DWORD dwInstance, DWORD 
 		MMRESULT mmres = waveInUnprepareHeader(waveIn->m_hWaveIn, pHdr, sizeof(WAVEHDR));
 		//处理数据 
 		int volume = pcm_db_count((unsigned char *)(pHdr->lpData), pHdr->dwBytesRecorded);
-		printf("%d\n", volume);
-		fountain->elevation = Pi / 2.0 * pow((volume + 96.0) / 96.0, 0.3);
+		//printf("%d\n", volume);
+		fountain->elevation = Pi / 2.0 * f(volume);
 		fountain->initialVelocity = 2.0 / Pi * 13 * fountain->elevation;
 		/*
 		if (volume > -40) {
@@ -72,9 +78,25 @@ static BOOL CALLBACK WaveInProc(HWAVEIN hwo, UINT uMsg, DWORD dwInstance, DWORD 
 void init(void) {
 	srand(time(0));
 	glClearColor(1.0, 1.0, 1.0, 1.0);
+	//glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glShadeModel(GL_SMOOTH);glEnable(GL_LIGHT0);
+	//glEnable(GL_COLOR_MATERIAL);
+	//glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_TEXTURE_2D);
 	fountain = new ParticleSystem(10000, {0,0,0});
 	fountain->initializeSystem();
+	GLfloat light0_position[] = { -9, 0, 1, 1.0f };    // 0号光源
+	//GLfloat light0_direction[] = { -1,0,-1,0 };
+	glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+	GLfloat ambientLight[] = {1.0, 1.0, 1.0, 0.0};    //RGBA
+	//glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+	GLfloat specularLight[] = { 1.0, 1.0, 1.0, 0.0 };    //RGBA
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
 
 	waveIn = new WaveIn((DWORD_PTR)WaveInProc);
 	waveIn->open();
@@ -99,6 +121,97 @@ void drawAxis() {    // 画三个坐标轴
 	glEnd();
 }
 
+void skybox() {
+	char *bmp[6] = {
+		"skybox/up.bmp", 
+		"skybox/dn.bmp" , 
+		"skybox/lf.bmp" , 
+		"skybox/rt.bmp" , 
+		"skybox/ft.bmp" , 
+		"skybox/bk.bmp" ,
+	};
+	static GLuint scene[6] = { 0, 0, 0, 0, 0, 0 };
+	for (int i = 0; i < 6; ++i) {
+		if (scene[i] == 0) {
+			scene[i] = LoadGLTexture(bmp[i]);
+		}
+	}
+	Vector3 v[8] = {
+		{ 10, 10, 0 },    // 0
+		{ -10, 10, 0 },    // 1
+		{ -10, -10, 0 },    // 2
+		{ 10, -10, 0 },    // 3
+		{ 10, 10, 20 },    // 4
+		{ -10, 10, 20 },    // 5
+		{ -10, -10, 20 },    // 6
+		{ 10, -10, 20 },    // 7
+	};
+	/*
+	Vector3 vn[6] = {
+		{ 0, 0, -1 },
+		{ 0, 0, 1 },
+		{ 1, 0, 0 },
+		{ -1, 0, 0 },
+		{ 0, 1, 0 },
+		{ 0, -1, 0 },
+	};
+	*/
+	Vector3 vn[8] = {
+		{ -1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) },
+		{ 1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) },
+		{ 1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) },
+		{ -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) },
+		{ -1 / sqrt(3), -1 / sqrt(3), -1 / sqrt(3) },
+		{ 1 / sqrt(3), -1 / sqrt(3), -1 / sqrt(3) },
+		{ 1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3) },
+		{ -1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3) },
+	};
+	int f[6][4] = {
+		{ 7,6,5,4 },    // up
+		{ 0,1,2,3 },    // down
+		{ 5,6,2,1 },    // left
+		{ 7,4,0,3 },    // right
+		{ 6,7,3,2 },    // front
+		{ 4,5,1,0 },    // back
+	};
+	float vt[4][2] = {    // 按照象限顺序
+		{ 1,1 },
+		{ 0,1 },
+		{ 0,0 },
+		{ 1,0 },
+	};
+	// up,down,left,right,front,back
+	//glDisable(GL_TEXTURE_2D);
+	//glPolygonMode(GL_FRONT, GL_POINT);
+	//glPolygonMode(GL_BACK, GL_POINT);
+	glColor3f(1, 1, 1);
+	// 将材质数据恢复为默认
+	GLfloat ambient[] = { 0.2,0.2,0.2,1.0 };    // 环境反射光
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+	GLfloat diffuse[] = { 0.8,0.8,0.8,1.0 };    // 漫反射光
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+	GLfloat specular[] = { 0.0,0.0,0.0,1.0 };   // 镜面反射光
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+	GLfloat shininess = 0.0;    // 镜面反射系数
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+	for (int i = 0; i < 6; ++i) {
+		//i = 5;
+		glBindTexture(GL_TEXTURE_2D, scene[i]);
+		glBegin(GL_POLYGON);
+		//printf("%d %s\n", i, bmp[i]);
+		for (int j = 0; j < 4; ++j) {
+			glTexCoord2f(vt[j][0], vt[j][1]);  //纹理    
+			//glNormal3f(vn[i].x, vn[i].y, vn[i].z);//法向量
+			glNormal3f(vn[f[i][j]].x, vn[f[i][j]].y, vn[f[i][j]].z);//法向量
+			glVertex3f(v[f[i][j]].x * 2, v[f[i][j]].y * 2, v[f[i][j]].z * 2);    // 顶点
+			//printf("%f, %f, %f : %f %f\n", v[f[i][j]].x, v[f[i][j]].y, v[f[i][j]].z, vt[j][0], vt[j][1]);
+		}
+		//printf("\n");
+		glEnd();
+	}
+	//glEnable(GL_TEXTURE_2D);
+}
+
 void display(void) {    // 页面缓冲刷新时的回调函数
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // 清除颜色和深度缓存
 
@@ -111,8 +224,9 @@ void display(void) {    // 页面缓冲刷新时的回调函数
 	glEnable(GL_POLYGON_SMOOTH);  //多边形抗锯齿
 
 								  //DrawBall(10, ball.x, ball.z, 0.5, 0.5, 0.5);
-	glColor3f(0, 0, 0);
-	drawAxis();
+	glColor3f(1, 1, 1);
+	skybox();
+	//drawAxis();
 	fountain->render();
 	/*
 	particlesystem->render
@@ -141,6 +255,8 @@ void reshape(int w, int h) {    // 窗口大小改变的回调函数
 	if (h == 0)
 		h = 1;
 	glViewport(0, 0, w, h);
+	windowWidth = w;
+	windowHeight = h;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	/*
@@ -151,14 +267,17 @@ void reshape(int w, int h) {    // 窗口大小改变的回调函数
 	glOrtho(-nRange*w / h, nRange*w / h, -nRange, nRange, -nRange, nRange);
 	}
 	*/
-	glOrtho(-5, 5, -1, 9, 0, 20);
-	gluLookAt(1, -10, 1, 0, 0, 0, 0, 0, 1);
+	//glOrtho(-5, 5, -1, 9, 0, 20);
+	gluPerspective(75, w*1.0/h, 0.1, 1000);
+	gluLookAt(1, -9, 2, 0, 0, 0, 0, 0, 1);
 
 	glMatrixMode(GL_MODELVIEW);  //设定当前矩阵为视景矩阵
 	glLoadIdentity();
 }
 
 void mouse(int button, int state, int x, int y) {    // 鼠标点击回调函数
+	static int oldx;
+	static int oldy;
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		/*
 		ball.vx *= 0.9;
@@ -170,6 +289,34 @@ void mouse(int button, int state, int x, int y) {    // 鼠标点击回调函数
 }
 
 void mouseMotion(int x, int y) {    // 鼠标拖动回调函数
+	static int oldx;
+	static int oldy;
+	static float oldtheta = -Pi / 2.0;
+	static float oldheight = 1.0;
+	//printf("%d %d\n", x, y);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//glOrtho(-5, 5, -1, 9, 0, 200 * 2);
+	gluPerspective(75, windowWidth*1.0 / windowHeight, 0.1, 1000);
+	float newtheta = oldtheta;
+	float newheight = oldheight;
+	if (abs(x - oldx) < 100) {
+		newtheta = oldtheta + 2.0*Pi*(oldx - x) / windowWidth;
+	}
+	if (abs(y - oldy) < 100) {
+		newheight += 20 * (y - oldy) / windowHeight * 2;
+		newheight = max(newheight, 0.5 * 0);
+		newheight = min(newheight, 20);
+	}
+	//gluLookAt(9.9 * cos(newtheta), 9.9 * sin(newtheta), newheight, 0, 0, 0, 0, 0, 1);
+	gluLookAt(9.9 * cos(newtheta), 9.9 * sin(newtheta), 2, 0, 0, newheight, 0, 0, 1);
+	//gluLookAt(10 * cos(Pi/2), 10 * sin(Pi/2), 1, 0, 0, 0, 0, 0, 1);
+	oldtheta = newtheta;
+	oldheight = newheight;
+	oldx = x;
+	oldy = y;
+	glMatrixMode(GL_MODELVIEW);  //设定当前矩阵为视景矩阵
+	glLoadIdentity();
 	/*/
 	ball.vx *= 0.9;
 	ball.vy *= 0.9;
@@ -188,10 +335,10 @@ void keyboard(unsigned char key, int x, int y) {    // 键盘回调函数
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);  //对GLUT进行初始化，并处理所有的命令行参数；调用于其他任何GLUT函数前
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);  //指定使用RGBA模式或颜色索引模式，使用单缓冲或双缓冲窗口
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);  //指定使用RGBA模式或颜色索引模式，使用单缓冲或双缓冲窗口
 	glutInitWindowSize(windowWidth, windowHeight);  //指定窗口大小，以像素为单位
 	glutInitWindowPosition(100, 100);  //指定窗口左上角的屏幕位置
-	glutCreateWindow("hw1");  //argv[0]显示可执行程序路径;创建一个支持OpenGL渲染环境的窗口，返回一个唯一的标识符标识窗口；在调用glutMainLoop()函数前，该窗口并不显示
+	glutCreateWindow("project");  //argv[0]显示可执行程序路径;创建一个支持OpenGL渲染环境的窗口，返回一个唯一的标识符标识窗口；在调用glutMainLoop()函数前，该窗口并不显示
 	glutDisplayFunc(display);  //显示回调函数，每当GLUT确定一个窗口的内容需要重新显示时，通过该函数注册的那个回调函数就会被执行
 	glutReshapeFunc(reshape);  //当窗口大小发生改变时采取行动
 	glutMouseFunc(mouse);    // 鼠标事件

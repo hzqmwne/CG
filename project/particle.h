@@ -15,6 +15,9 @@ struct Particle {
 	Vector3 velocity;                 //direction and speed
 	Vector3 acceleration;         // acceleration
 
+	float lifetime;    // 粒子已存活的时间
+	float totalLifetime;    // 粒子的最长生存时间
+
 	float energy;                   //determines how long the particle is alive
 	float size;                        // size of the particle
 	float sizeDelta;            // amount to change the size over time
@@ -30,6 +33,7 @@ struct Particle {
 	Obj *model;
 	GLuint texture;
 };
+void moveParticle(Particle *, float millis);
 
 class ParticleSystem {
 public:
@@ -59,7 +63,7 @@ protected:
 
 	float newParticlesPerSecond;    // how much new particles generated per second
 
-	void addParticle();
+	void addParticle(float);
 	void deleteParticle(Particle *);
 };
 

@@ -1,3 +1,4 @@
+#include <gl/glew.h>
 #include "objLoader.h"
 #include <string>
 #include <gl/glut.h>
@@ -105,11 +106,13 @@ unsigned int LoadGLTexture(char *filename) {
 	GLuint texture = 0;
 	glGenTextures(1, &texture);        // Create The Texture Object
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, textureImage->sizeX, textureImage->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, textureImage->data);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);    // Linear Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);    // Linear Filtering
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureImage->sizeX, textureImage->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, textureImage->data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);    // Linear Filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);    // Linear Filtering
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    // 0x812F是GL_CLAMP_TO_EDGE，只在opengl.2及更高版本可用
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	if (textureImage) {
-		printf("texture %d\n", texture);
+		//printf("texture %d\n", texture);
 		if (textureImage->data) {    // If Texture Image Exists
 			free(textureImage->data);    // Free The Texture Image Memory
 		}
