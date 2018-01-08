@@ -27,10 +27,10 @@ ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 	this->newParticlesPerSecond = 4000;
 	this->force = { 0, 0, (float)-9.8 };
 	this->particleTexture = LoadGLTexture("color.bmp");
-	//this->particleModel = LoadModel("model.obj");
-	this->particleModel = NULL;
+	this->particleModel = LoadModel("model.obj");
 	this->initialVelocity = 12;
 	this->elevation = Pi / 180.0 * 75.0;
+	this->modelSelect = 1;
 }
 
 void ParticleSystem::update(float elapsedTime) {
@@ -62,7 +62,7 @@ void ParticleSystem::update(float elapsedTime) {
 
 void ParticleSystem::render() {
 	for (Particle *p = this->particleList; p; p = p->next) {
-		glDisable(GL_TEXTURE_2D);
+		//glDisable(GL_TEXTURE_2D);
 		glPushMatrix();
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -82,15 +82,17 @@ void ParticleSystem::render() {
 		glVertex3f(0.3,0,0);
 		glEnd();
 		*/
-		if (p->model != NULL) {
-			p->model->draw(0.05);
+		if (this->modelSelect == 1) {
+			if (p->model != NULL) {
+				p->model->draw(0.05);
+			}
 		}
-		else {
+		else if(this->modelSelect == 2) {
 			glutSolidSphere(0.03, 10, 10);
 		}
 		glDepthMask(GL_TRUE);
 		glPopMatrix();
-		glEnable(GL_TEXTURE_2D);
+		//glEnable(GL_TEXTURE_2D);
 	}
 }
 

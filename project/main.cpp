@@ -12,9 +12,17 @@ const GLfloat Pi = 3.1415926f;  //定义圆周率
 const int N = 50;
 unsigned int timeInterval = 33;    // 计算运动的时间间隔
 
+static int oldx;    // 鼠标上次点击或拖动的坐标
+static int oldy;
+
+static int isPaused = 0;    // 暂停控制
+
 ParticleSystem *fountain = NULL;
 
 WaveIn *waveIn = NULL;
+
+static float gluPerspectiveArgs[4] = { 75, 0, 0.1, 1000 };
+static float gluLookAtArgs[9] = { 1, -9, 2, 0, 0, 0, 0, 0, 1 };
 
 /* =============================================================== */
 
@@ -74,6 +82,17 @@ static BOOL CALLBACK WaveInProc(HWAVEIN hwo, UINT uMsg, DWORD dwInstance, DWORD 
 }
 
 /* ======================================================================= */
+
+void perspectiveAndLookAtInit() {
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(gluPerspectiveArgs[0], gluPerspectiveArgs[1], gluPerspectiveArgs[2], gluPerspectiveArgs[3]);
+	gluLookAt(gluLookAtArgs[0], gluLookAtArgs[1], gluLookAtArgs[2],
+		gluLookAtArgs[3], gluLookAtArgs[4], gluLookAtArgs[5],
+		gluLookAtArgs[6], gluLookAtArgs[7], gluLookAtArgs[8]);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+}
 
 void init(void) {
 	srand(time(0));
@@ -185,19 +204,19 @@ void skybox() {
 	//glPolygonMode(GL_FRONT, GL_POINT);
 	//glPolygonMode(GL_BACK, GL_POINT);
 	glColor3f(1, 1, 1);
-	// 将材质数据恢复为默认
+	// 材质数据
 	GLfloat ambient[] = { 0.2,0.2,0.2,1.0 };    // 环境反射光
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
 	GLfloat diffuse[] = { 0.8,0.8,0.8,1.0 };    // 漫反射光
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
 	GLfloat specular[] = { 0.0,0.0,0.0,1.0 };   // 镜面反射光
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-	GLfloat shininess = 0.0;    // 镜面反射系数
+	GLfloat shininess = 0.2;    // 镜面反射系数
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
 	for (int i = 0; i < 6; ++i) {
 		//i = 5;
 		glBindTexture(GL_TEXTURE_2D, scene[i]);
-		glBegin(GL_POLYGON);
+		glBegin(GL_QUADS);
 		//printf("%d %s\n", i, bmp[i]);
 		for (int j = 0; j < 4; ++j) {
 			glTexCoord2f(vt[j][0], vt[j][1]);  //纹理    
@@ -245,7 +264,9 @@ void timerFunc(int value) {    // 定时回调函数
 	/*
 	particlesystem->update
 	*/
-	fountain->update((timeInterval*1.0) / 1000);
+	if (!isPaused) {
+		fountain->update((timeInterval*1.0) / 1000);
+	}
 	glutPostRedisplay();  //标记当前窗口需要重新绘制
 	glutTimerFunc(timeInterval, timerFunc, 1);  //创建定时器回调函数
 }
@@ -257,8 +278,7 @@ void reshape(int w, int h) {    // 窗口大小改变的回调函数
 	glViewport(0, 0, w, h);
 	windowWidth = w;
 	windowHeight = h;
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
+	gluPerspectiveArgs[1] = w*1.0 / h;
 	/*
 	if (w <= h) {
 	glOrtho(-nRange, nRange, -nRange*h / w, nRange*h / w, -nRange, nRange);
@@ -268,17 +288,26 @@ void reshape(int w, int h) {    // 窗口大小改变的回调函数
 	}
 	*/
 	//glOrtho(-5, 5, -1, 9, 0, 20);
-	gluPerspective(75, w*1.0/h, 0.1, 1000);
-	gluLookAt(1, -9, 2, 0, 0, 0, 0, 0, 1);
-
+	//gluPerspective(75, w*1.0/h, 0.1, 1000);
+	//gluLookAt(1, -9, 2, 0, 0, 0, 0, 0, 1);
+	/*
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(gluPerspectiveArgs[0], gluPerspectiveArgs[1], gluPerspectiveArgs[2], gluPerspectiveArgs[3]);
+	gluLookAt(gluLookAtArgs[0], gluLookAtArgs[1], gluLookAtArgs[2], 
+		gluLookAtArgs[3], gluLookAtArgs[4], gluLookAtArgs[5], 
+		gluLookAtArgs[6], gluLookAtArgs[7], gluLookAtArgs[8]);
 	glMatrixMode(GL_MODELVIEW);  //设定当前矩阵为视景矩阵
 	glLoadIdentity();
+	*/
+	perspectiveAndLookAtInit();
 }
 
-void mouse(int button, int state, int x, int y) {    // 鼠标点击回调函数
-	static int oldx;
-	static int oldy;
+void mouse(int button, int state, int x, int y) {    // 鼠标回调函数
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		//printf("aaa");
+		oldx = x;
+		oldy = y;
 		/*
 		ball.vx *= 0.9;
 		ball.vy *= 0.9;
@@ -286,18 +315,31 @@ void mouse(int button, int state, int x, int y) {    // 鼠标点击回调函数
 		printf("mouse\n");
 		*/
 	}
+	/*
+	else if (state == 3) {    // GLUT_WHEEL_UP
+		printf("GLUT_WHEEL_UP\n");
+	}
+	else if (state == 4) {    // GLUT_WHEEL_DOWN
+		printf("GLUT_WHEEL_DOWN\n");
+	}
+	*/
 }
 
 void mouseMotion(int x, int y) {    // 鼠标拖动回调函数
-	static int oldx;
-	static int oldy;
+	//static int oldx;
+	//static int oldy;
 	static float oldtheta = -Pi / 2.0;
 	static float oldheight = 1.0;
 	//printf("%d %d\n", x, y);
+	/*
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
+	*/
 	//glOrtho(-5, 5, -1, 9, 0, 200 * 2);
-	gluPerspective(75, windowWidth*1.0 / windowHeight, 0.1, 1000);
+	//gluPerspective(75, windowWidth*1.0 / windowHeight, 0.1, 1000);
+	/*
+	gluPerspective(gluPerspectiveArgs[0], gluPerspectiveArgs[1], gluPerspectiveArgs[2], gluPerspectiveArgs[3]);
+	*/
 	float newtheta = oldtheta;
 	float newheight = oldheight;
 	if (abs(x - oldx) < 100) {
@@ -309,14 +351,25 @@ void mouseMotion(int x, int y) {    // 鼠标拖动回调函数
 		newheight = min(newheight, 20);
 	}
 	//gluLookAt(9.9 * cos(newtheta), 9.9 * sin(newtheta), newheight, 0, 0, 0, 0, 0, 1);
-	gluLookAt(9.9 * cos(newtheta), 9.9 * sin(newtheta), 2, 0, 0, newheight, 0, 0, 1);
-	//gluLookAt(10 * cos(Pi/2), 10 * sin(Pi/2), 1, 0, 0, 0, 0, 0, 1);
+	gluLookAtArgs[0] = 9.9 * cos(newtheta);
+	gluLookAtArgs[1] = 9.9 * sin(newtheta);
+	gluLookAtArgs[5] = newheight;
+	//gluLookAt(9.9 * cos(newtheta), 9.9 * sin(newtheta), 2, 0, 0, newheight, 0, 0, 1);
+	/*
+	gluLookAt(gluLookAtArgs[0], gluLookAtArgs[1], gluLookAtArgs[2],
+		gluLookAtArgs[3], gluLookAtArgs[4], gluLookAtArgs[5],
+		gluLookAtArgs[6], gluLookAtArgs[7], gluLookAtArgs[8]);
+	*/
+	////gluLookAt(10 * cos(Pi/2), 10 * sin(Pi/2), 1, 0, 0, 0, 0, 0, 1);
 	oldtheta = newtheta;
 	oldheight = newheight;
 	oldx = x;
 	oldy = y;
+	/*
 	glMatrixMode(GL_MODELVIEW);  //设定当前矩阵为视景矩阵
 	glLoadIdentity();
+	*/
+	perspectiveAndLookAtInit();
 	/*/
 	ball.vx *= 0.9;
 	ball.vy *= 0.9;
@@ -326,10 +379,95 @@ void mouseMotion(int x, int y) {    // 鼠标拖动回调函数
 }
 
 void keyboard(unsigned char key, int x, int y) {    // 键盘回调函数
+	//printf("%d\n", key);
 	switch (key) {
-	case 27:    // ESC
+	case 27: {    // ESC
 		exit(0);
 		break;
+	}
+	case 'p': {
+		isPaused = !isPaused;
+		break;
+	}
+	case '1': {
+		fountain->modelSelect = 1;
+		break;
+	}
+	case '2': {
+		fountain->modelSelect = 2;
+		break;
+	}
+	case '3': {
+		fountain->modelSelect = 3;
+		break;
+	}
+	case 'k': {
+		//printf("Up\n");
+		float eyez = gluLookAtArgs[2];
+		eyez = min(eyez + 1, 20);
+		gluLookAtArgs[2] = eyez;
+		perspectiveAndLookAtInit();
+		break;
+	}
+	case 'j': {
+		//printf("Down\n");
+		float eyez = gluLookAtArgs[2];
+		eyez = max(eyez - 1, 1);
+		gluLookAtArgs[2] = eyez;
+		perspectiveAndLookAtInit();
+		break;
+	}
+	case 'h': {
+		//printf("Left\n");
+		float foxy = gluPerspectiveArgs[0];
+		foxy = max(foxy - 2.5, 25);
+		gluPerspectiveArgs[0] = foxy;
+		perspectiveAndLookAtInit();
+		break;
+	}
+	case 'l': {
+		//printf("Right\n");
+		float foxy = gluPerspectiveArgs[0];
+		foxy = min(foxy + 2.5, 75);
+		gluPerspectiveArgs[0] = foxy;
+		perspectiveAndLookAtInit();
+		break;
+	}
+	case 'r': {    // red light
+		GLfloat specularLight[] = { 1.0, 0.0, 0.0, 0.0 };
+		glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+		//glLightfv(GL_LIGHT0, GL_AMBIENT, specularLight);
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, specularLight);
+		break;
+	}
+	case 'g': {    // green light
+		GLfloat specularLight[] = { 0.0, 1.0, 0.0, 0.0 };
+		glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+		//glLightfv(GL_LIGHT0, GL_AMBIENT, specularLight);
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, specularLight);
+		break;
+	}
+	case 'b': {    // blue light
+		GLfloat specularLight[] = { 0.0, 0.0, 1.0, 0.0 };
+		glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+		//glLightfv(GL_LIGHT0, GL_AMBIENT, specularLight);
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, specularLight);
+		break;
+	}
+	case 'w': {    // white light
+		GLfloat specularLight[] = { 1.0, 1.0, 1.0, 0.0 };
+		glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+		//glLightfv(GL_LIGHT0, GL_AMBIENT, specularLight);
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, specularLight);
+		break;
+	}
+	case 'd': {    // dark light
+		GLfloat specularLight[] = { 0.0, 0.0, 0.0, 0.0 };
+		glLightfv(GL_LIGHT0, GL_SPECULAR, specularLight);
+		//glLightfv(GL_LIGHT0, GL_AMBIENT, specularLight);
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, specularLight);
+		break;
+	}
 	}
 }
 
