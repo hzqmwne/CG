@@ -72,23 +72,13 @@ void Obj::draw(float yu) {    // 绘制模型，yu是放大倍数，用于调整大小
 			//printf("%f %f %f\n", v[f[i].v[j]].x * yu, v[f[i].v[j]].y * yu, v[f[i].v[j]].z * yu);
 		}
 		glEnd();// 三角形绘制结束    
-
-
-				/*if(m_pic.VN.size()!=0){
-				glBegin(GL_LINES);                            // 绘制三角形
-				glVertex3f(m_pic.V[m_pic.F[i].V[0]].X/YU,m_pic.V[m_pic.F[i].V[0]].Y/YU, m_pic.V[m_pic.F[i].V[0]].Z/YU);        // 上顶点
-				glVertex3f(m_pic.V[m_pic.F[i].V[0]].X/YU+m_pic.VN[m_pic.F[i].N[0]].NX
-				,m_pic.V[m_pic.F[i].V[0]].Y/YU+m_pic.VN[m_pic.F[i].N[0]].NY
-				, m_pic.V[m_pic.F[i].V[0]].Z/YU+m_pic.VN[m_pic.F[i].N[0]].NZ);                    // 左下
-				glEnd();                                // 三角形绘制结束
-				}*/
 	}
 
 }
 
 Obj *LoadModel(char *filename) {
 	std::fstream modelFile;
-	modelFile.open("model.obj", std::ios::in);    // 寻找默认路径下的model.obj文件并加载
+	modelFile.open(filename, std::ios::in);
 	if (!modelFile) {
 		return NULL;
 	}
@@ -102,14 +92,14 @@ Obj *LoadModel(char *filename) {
 
 unsigned int LoadGLTexture(char *filename) {
 	AUX_RGBImageRec *textureImage = NULL;
-	textureImage = auxDIBImageLoadA(filename);
+	textureImage = auxDIBImageLoadA(filename);    // 调用glaux库读取数据
 	GLuint texture = 0;
 	glGenTextures(1, &texture);        // Create The Texture Object
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureImage->sizeX, textureImage->sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE, textureImage->data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);    // Linear Filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);    // Linear Filtering
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    // 0x812F是GL_CLAMP_TO_EDGE，只在opengl.2及更高版本可用
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    // 0x812F是GL_CLAMP_TO_EDGE，只在opengl.2及更高版本可用；glew扩展库也提供
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	if (textureImage) {
 		//printf("texture %d\n", texture);

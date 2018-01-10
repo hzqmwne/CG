@@ -6,7 +6,7 @@
 
 const GLfloat Pi = 3.1415926f;
 
-void moveParticle(Particle *p, float millis) {
+void moveParticle(Particle *p, float millis) {    // 更新粒子的运动学属性
 	p->prevPos = p->pos;
 	Vector3 prevVelocity = p->velocity;
 	p->velocity.x += p->acceleration.x * millis;
@@ -17,7 +17,7 @@ void moveParticle(Particle *p, float millis) {
 	p->pos.z += 0.5 * (prevVelocity.z + p->velocity.z) * millis;
 }
 
-ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
+ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {    // 初始化必要的参数
 	this->particleList = NULL;
 	this->particleBuffer = NULL;
 	this->numParticles = maxParticles;
@@ -29,7 +29,7 @@ ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 	this->particleTexture = LoadGLTexture("water.bmp");
 	this->particleModel = LoadModel("model.obj");
 	this->initialVelocity = 12;
-	this->elevation = Pi / 180.0 * 75.0;
+	this->elevation = Pi / 180.0 * 75.0;    // 初始仰角设为75度
 	this->modelSelect = 1;
 	this->waterFlowCount = 4;
 }
@@ -37,22 +37,18 @@ ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 void ParticleSystem::update(float elapsedTime) {
 	Particle *p = this->particleList;
 	while(p) {
-		//printf("update x:%f y:%f z:%f\n", p->pos.x, p->pos.y, p->pos.z);
 		Particle *next = p->next;
-		moveParticle(p, elapsedTime);
+		moveParticle(p, elapsedTime);    // 更新粒子
 		p->lifetime += elapsedTime;
 		p->color[3] = pow(1 - p->lifetime / p->totalLifetime, 2);
-		float downBound = 0;
-		//if (p->pos.z <= downBound) {
-		if (p->lifetime > p->totalLifetime) {
+		if (p->lifetime > p->totalLifetime) {    // 删除超过生命周期的粒子
 			this->deleteParticle(p);
 		}
 		p = next;
 	}
 	this->lastUpdateTime += elapsedTime;
-	float delayTime = this->lastUpdateTime - this->accumulatedTime;
-	int count = (int)(delayTime * this->newParticlesPerSecond);
-	//printf("count %f\n", count);
+	float delayTime = this->lastUpdateTime - this->accumulatedTime;    // 计算距离上一次添加新粒子的时间间隔
+	int count = (int)(delayTime * this->newParticlesPerSecond);    // 计算这段时间新增的粒子数量
 	if (count > 0) {
 		for (int i = 0; i < count; ++i) {
 			this->addParticle(5*delayTime / count * i);
@@ -63,7 +59,6 @@ void ParticleSystem::update(float elapsedTime) {
 
 void ParticleSystem::render() {
 	for (Particle *p = this->particleList; p; p = p->next) {
-		//glDisable(GL_TEXTURE_2D);
 		glPushMatrix();
 		glDepthMask(GL_FALSE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -75,15 +70,8 @@ void ParticleSystem::render() {
 		GLfloat shininess = 0.8;    // 镜面反射系数
 		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
 		glTranslatef(this->origin.x + p->pos.x, this->origin.y + p->pos.y, this->origin.z + p->pos.z);
-		glBindTexture(GL_TEXTURE_2D, p->texture);
-		/*
-		glBegin(GL_POLYGON);
-		glVertex3f(0,0,0);
-		glVertex3f(0,0.3,0);
-		glVertex3f(0.3,0,0);
-		glEnd();
-		*/
-		if (this->modelSelect == 1) {
+		glBindTexture(GL_TEXTURE_2D, p->texture);    // 纹理
+		if (this->modelSelect == 1) {    // 模型选择
 			if (p->model != NULL) {
 				p->model->draw(0.05);
 			}
@@ -93,16 +81,7 @@ void ParticleSystem::render() {
 		}
 		glDepthMask(GL_TRUE);
 		glPopMatrix();
-		//glEnable(GL_TEXTURE_2D);
 	}
-}
-
-int ParticleSystem::emit(int numParticles) {
-	return 0;
-}
-
-void ParticleSystem::initializeParticle(int index) {
-	
 }
 
 void ParticleSystem::initializeSystem() {
@@ -138,7 +117,6 @@ ParticleSystem::~ParticleSystem() {
 }
 
 void ParticleSystem::addParticle(float delay) {
-	//printf("delay %f\n", delay);
 	Particle *p = this->particleBuffer;
 	if (!p) {
 		return;
@@ -146,15 +124,13 @@ void ParticleSystem::addParticle(float delay) {
 	this->particleBuffer = p->next;
 
 	int num = this->waterFlowCount;
-	float disturbance = Pi / 180.0 * (rand()*1.0 / RAND_MAX * 2 - 1);
+	float disturbance = Pi / 180.0 * (rand()*1.0 / RAND_MAX * 2 - 1);    // 对初速度的微扰
 	float theta = (2.0 * Pi) * (rand() % num) / num + disturbance;
 	p->model = this->particleModel;
 	p->texture = this->particleTexture;
 	float v_horizontal = this->initialVelocity * cos(this->elevation + disturbance);
 	float v_vertical = this->initialVelocity * sin(this->elevation + disturbance);
-	//p->velocity = {2*cos(theta),2*sin(theta),12};
 	p->velocity = { v_horizontal * cos(theta), v_horizontal * sin(theta), v_vertical };
-	//p->pos = { 0.1f*rand() / RAND_MAX, 0.1f*rand() / RAND_MAX, 0.1f*rand() / RAND_MAX };
 	p->pos = { 0, 0, 0 };
 	moveParticle(p, delay);
 	p->acceleration = this->force;
@@ -190,71 +166,3 @@ void ParticleSystem::deleteParticle(Particle *p) {
 	p->next = this->particleBuffer;
 	this->particleBuffer = p;
 }
-
-/* ================================================================================ */
-
-/*
-Fountain::Fountain(int maxParticles, Vector3 origin) :ParticleSystem(maxParticles, origin) {
-	this->force = { 0, 0, (float)-9.8 };
-}
-
-void Fountain::update(float elapsedTime) {
-	for (int i = 0; i < maxParticles; ++i) {
-	
-		Particle p = this->particleList[i];
-		float oldx = x;
-		float oldy = y;
-		float oldz = z;
-		float oldvx = vx;
-		float oldvy = vy;
-		float oldvz = vz;
-		vx += ax*millis;
-		vz += az*millis;
-		x += 0.5*(oldvx + vx)*millis;
-		z += 0.5*(oldvz + vz)*millis;
-		if (oldvz > 0 && vz <= 0 && z > 0 + R && z*0.9*0.9 < 0 + R) {
-			downBound = 0 + R;
-			printf("===new dowmBound\n");
-		}
-		if (x >= rightBound) {    // 处理反弹
-			x = oldx;
-			vx = -oldvx;
-		}
-		if (x <= leftBound) {
-			x = oldx;
-			vx = -oldvx;
-		}
-		if (z >= upBound) {
-			z = oldz;
-			vz = -oldvz;
-		}
-		if (z <= downBound) {    // 每次触底，都要损失大约20%的能量
-			z = oldz;
-			vx = 0.9*oldvx;
-			vy = 0.9*oldvy;
-			vz = -0.9*oldvz;
-		}
-		
-	}
-}
-
-void Fountain::render() {
-
-}
-
-int Fountain::emit(int numParticles) {
-	return 0;
-}
-
-void Fountain::initializeSystem() {
-
-}
-
-void Fountain::killSystem() {
-
-}
-
-Fountain::~Fountain() {
-
-}
-*/

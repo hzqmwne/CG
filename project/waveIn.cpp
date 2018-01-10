@@ -1,5 +1,6 @@
 #include "waveIn.h"
 #include <iostream>
+
 WaveIn::WaveIn(DWORD_PTR callbackFunction) {
 	waveform.wFormatTag = WAVE_FORMAT_PCM;//声音格式为PCM  
 	waveform.nSamplesPerSec = 8000;//采样率，16000次/秒  
