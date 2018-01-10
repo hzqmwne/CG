@@ -401,6 +401,18 @@ void keyboard(unsigned char key, int x, int y) {    // ¼üÅÌ»Øµ÷º¯Êý
 		fountain->modelSelect = 3;
 		break;
 	}
+	case '=': {
+		int num = fountain->waterFlowCount;
+		num = min(num * 2, 64);
+		fountain->waterFlowCount = num;
+		break;
+	}
+	case '-': {
+		int num = fountain->waterFlowCount;
+		num = max(num / 2, 2);
+		fountain->waterFlowCount = num;
+		break;
+	}
 	case 'k': {
 		//printf("Up\n");
 		float eyez = gluLookAtArgs[2];

@@ -41,6 +41,7 @@ public:
 	float elevation;    // 粒子仰角大小，单位为弧度
 
 	int modelSelect;    // 模型切换
+	int waterFlowCount;    // 水流数目
 
 	ParticleSystem(int maxParticles, Vector3 origin);
 	void update(float elapsedTime);

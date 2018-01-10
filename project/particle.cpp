@@ -26,11 +26,12 @@ ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 	this->accumulatedTime = 0;
 	this->newParticlesPerSecond = 4000;
 	this->force = { 0, 0, (float)-9.8 };
-	this->particleTexture = LoadGLTexture("color.bmp");
+	this->particleTexture = LoadGLTexture("water2.bmp");
 	this->particleModel = LoadModel("model.obj");
 	this->initialVelocity = 12;
 	this->elevation = Pi / 180.0 * 75.0;
 	this->modelSelect = 1;
+	this->waterFlowCount = 4;
 }
 
 void ParticleSystem::update(float elapsedTime) {
@@ -144,7 +145,7 @@ void ParticleSystem::addParticle(float delay) {
 	}
 	this->particleBuffer = p->next;
 
-	int num = RAND_MAX - RAND_MAX + 4;
+	int num = this->waterFlowCount;
 	float disturbance = Pi / 180.0 * (rand()*1.0 / RAND_MAX * 2 - 1);
 	float theta = (2.0 * Pi) * (rand() % num) / num + disturbance;
 	p->model = this->particleModel;
