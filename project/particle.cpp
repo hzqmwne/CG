@@ -26,7 +26,7 @@ ParticleSystem::ParticleSystem(int maxParticles, Vector3 origin) {
 	this->accumulatedTime = 0;
 	this->newParticlesPerSecond = 4000;
 	this->force = { 0, 0, (float)-9.8 };
-	this->particleTexture = LoadGLTexture("water2.bmp");
+	this->particleTexture = LoadGLTexture("water.bmp");
 	this->particleModel = LoadModel("model.obj");
 	this->initialVelocity = 12;
 	this->elevation = Pi / 180.0 * 75.0;

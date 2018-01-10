@@ -1,3 +1,5 @@
+// #pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+
 #include <GL/glut.h>
 #include <GL/glaux.h>
 #include <cstdlib>
@@ -256,7 +258,7 @@ void display(void) {    // 页面缓冲刷新时的回调函数
 	glPopMatrix();
 
 	glutSwapBuffers();  //双缓冲下使用该函数交换两个缓冲区内容
-	glFlush();
+	//glFlush();
 }
 
 void timerFunc(int value) {    // 定时回调函数
@@ -401,15 +403,17 @@ void keyboard(unsigned char key, int x, int y) {    // 键盘回调函数
 		fountain->modelSelect = 3;
 		break;
 	}
-	case '=': {
+	case '=': case '+': {
 		int num = fountain->waterFlowCount;
-		num = min(num * 2, 64);
+		//num = min(num * 2, 64);
+		num = min(num + 1, 64);
 		fountain->waterFlowCount = num;
 		break;
 	}
 	case '-': {
 		int num = fountain->waterFlowCount;
-		num = max(num / 2, 2);
+		//num = max(num / 2, 2);
+		num = max(num - 1, 2);
 		fountain->waterFlowCount = num;
 		break;
 	}
