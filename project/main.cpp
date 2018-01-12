@@ -9,7 +9,7 @@
 #include "particle.h"
 #include "waveIn.h"
 
-float windowWidth = 400.0f, windowHeight = 400.0f;  //屏幕宽度，高度
+float windowWidth = 1000.0f, windowHeight = 600.0f;  //屏幕宽度，高度
 const GLfloat Pi = 3.1415926f;  //定义圆周率  
 unsigned int timeInterval = 33;    // 计算运动的时间间隔（毫秒）
 
@@ -88,6 +88,8 @@ void perspectiveAndLookAtInit() {    // 为了方便进行视角变换，进行了简单的函数封
 	glLoadIdentity();
 }
 
+GLfloat light0_position[] = { -9, 0, 1, 1.0f };    // 0号光源
+
 void init(void) {    // 初始化
 	srand(time(0));
 	glClearColor(1.0, 1.0, 1.0, 1.0);
@@ -97,7 +99,7 @@ void init(void) {    // 初始化
 	glEnable(GL_TEXTURE_2D);
 	fountain = new ParticleSystem(10000, {0,0,0});
 	fountain->initializeSystem();
-	GLfloat light0_position[] = { -9, 0, 1, 1.0f };    // 0号光源
+	//GLfloat light0_position[] = { -9, 0, 1, 1.0f };    // 0号光源
 	glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
 	GLfloat ambientLight[] = {1.0, 1.0, 1.0, 0.0};    //RGBA
 	GLfloat specularLight[] = { 1.0, 1.0, 1.0, 0.0 };    //RGBA
@@ -183,6 +185,92 @@ void skybox() {    // 绘制天空盒
 	}
 }
 
+void cube() {
+	Vector3 v[8] = {
+		{ 1, 1, -1 },    // 0
+		{ -1, 1, -1 },    // 1
+		{ -1, -1, -1 },    // 2
+		{ 1, -1, -1 },    // 3
+		{ 1, 1, 1 },    // 4
+		{ -1, 1, 1 },    // 5
+		{ -1, -1, 1 },    // 6
+		{ 1, -1, 1 },    // 7
+	};
+	Vector3 vn[8] = {
+		{ 1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3) },
+		{ -1 / sqrt(3), 1 / sqrt(3), -1 / sqrt(3) },
+		{ -1 / sqrt(3), -1 / sqrt(3), -1 / sqrt(3) },
+		{ 1 / sqrt(3), -1 / sqrt(3), -1 / sqrt(3) },
+		{ 1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) },
+		{ -1 / sqrt(3), 1 / sqrt(3), 1 / sqrt(3) },
+		{ -1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) },
+		{ 1 / sqrt(3), -1 / sqrt(3), 1 / sqrt(3) },
+	};
+	int f[6][4] = {
+		{ 7,6,5,4 },    // up
+		{ 0,1,2,3 },    // down
+		{ 5,6,2,1 },    // left
+		{ 7,4,0,3 },    // right
+		{ 6,7,3,2 },    // front
+		{ 4,5,1,0 },    // back
+	};
+	float vt[4][2] = {    // 按照象限顺序
+		{ 1,1 },
+		{ 0,1 },
+		{ 0,0 },
+		{ 1,0 },
+	};
+	for (int i = 0; i < 6; ++i) {
+		glBegin(GL_QUADS);
+		for (int j = 0; j < 4; ++j) {
+			glTexCoord2f(vt[j][0], vt[j][1]);  //纹理    
+			glNormal3f(vn[f[i][j]].x, vn[f[i][j]].y, vn[f[i][j]].z);//法向量
+			glVertex3f(v[f[i][j]].x * 2, v[f[i][j]].y * 2, v[f[i][j]].z * 2);    // 顶点
+		}
+		glEnd();
+	}
+}
+
+void cylinder() {
+	int n = 40;
+	for (int i = 0; i < n; ++i) {
+		glBegin(GL_QUADS);
+		glTexCoord2f(i*1.0/n, 1);
+		glNormal3f(cos(i* 2 * Pi / n) / sqrt(2), sin(i* 2 * Pi / n) / sqrt(2), 1 / sqrt(2));
+		glVertex3f(cos(i* 2 * Pi / n), sin(i* 2 * Pi / n), 1);
+		glTexCoord2f((i+1)*1.0 / n, 1);
+		glNormal3f(cos((i + 1)* 2 * Pi / n) / sqrt(2), sin((i + 1)* 2 * Pi / n) / sqrt(2), 1 / sqrt(2));
+		glVertex3f(cos((i + 1)* 2 * Pi / n), sin((i + 1)* 2 * Pi / n), 1);
+		glTexCoord2f((i + 1)*1.0 / n, 0);
+		glNormal3f(cos((i + 1)* 2 * Pi / n) / sqrt(2), sin((i + 1)* 2 * Pi / n) / sqrt(2), -1 / sqrt(2));
+		glVertex3f(cos((i + 1)* 2 * Pi / n), sin((i + 1)* 2 * Pi / n), -1);
+		glTexCoord2f(i*1.0 / n, 0);
+		glNormal3f(cos(i* 2 * Pi / n) / sqrt(2), sin(i* 2 * Pi / n) / sqrt(2), -1 / sqrt(2));
+		glVertex3f(cos(i* 2 * Pi / n), sin(i* 2 * Pi / n), -1);
+		glEnd();
+		glBegin(GL_TRIANGLES);
+		glTexCoord2f(0.5,0.5);
+		glNormal3f(0,0,1);
+		glVertex3f(0,0,1);
+		glTexCoord2f(0.5+0.5*cos(i*2*Pi/n),0.5+0.5*sin(i*2*Pi/n));
+		glNormal3f(cos(i * 2 * Pi / n) / sqrt(2), sin(i * 2 * Pi / n) / sqrt(2), 1 / sqrt(2));
+		glVertex3f(cos(i* 2 * Pi) / n, sin(i* 2 * Pi) / n, 1);
+		glTexCoord2f(0.5 + 0.5*cos((i+1) * 2 * Pi / n), 0.5 + 0.5*sin((i+1) * 2 * Pi / n));
+		glNormal3f(cos((i+1) * 2 * Pi / n) / sqrt(2), sin((i+1) * 2 * Pi / n) / sqrt(2), 1 / sqrt(2));
+		glVertex3f(cos((i + 1)* 2 * Pi / n), sin((i + 1)* 2 * Pi / n), 1);
+		glTexCoord2f(0.5,0.5);
+		glNormal3f(0,0,-1);
+		glVertex3f(0,0,-1);
+		glTexCoord2f(0.5 - 0.5*cos(i * 2 * Pi / n), 0.5 + 0.5*sin(i * 2 * Pi / n));
+		glNormal3f(cos(i * 2 * Pi / n) / sqrt(2), sin(i * 2 * Pi / n) / sqrt(2), -1 / sqrt(2));
+		glVertex3f(cos(i * 2 * Pi) / n, sin(i * 2 * Pi) / n, -1);
+		glTexCoord2f(0.5 - 0.5*cos((i + 1) * 2 * Pi / n), 0.5 + 0.5*sin((i + 1) * 2 * Pi / n));
+		glNormal3f(cos((i + 1) * 2 * Pi / n) / sqrt(2), sin((i + 1) * 2 * Pi / n) / sqrt(2), -1 / sqrt(2));
+		glVertex3f(cos((i + 1) * 2 * Pi / n), sin((i + 1) * 2 * Pi / n), -1);
+		glEnd();
+	}
+}
+
 void display(void) {    // 页面缓冲刷新时的回调函数
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // 清除颜色和深度缓存
 
@@ -196,6 +284,48 @@ void display(void) {    // 页面缓冲刷新时的回调函数
 
 	glColor3f(1, 1, 1);
 	skybox();    // 绘制天空盒
+
+	glColor4f(0, 0, 0, 1);
+	static GLuint marble = 0;
+	if (marble == 0) {
+		marble = LoadGLTexture("marble.bmp");
+	}
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glBindTexture(GL_TEXTURE_2D, marble);
+	glPushMatrix();
+	glTranslatef(10, 0, 1);
+	glScalef(1, 1, 0.1);
+	cube();
+	glPopMatrix();
+	glPushMatrix();
+	glTranslatef(10, 0, 0);
+	glScalef(0.7, 0.7, 1);
+	cylinder();
+	glPopMatrix();
+	glPushMatrix();
+	glTranslatef(10-3, 0, 0);
+	glScalef(0.3, 0.3, 0.6);
+	cylinder();
+	glPopMatrix();
+	glPushMatrix();
+	glTranslatef(10+3, 0, 0);
+	glScalef(0.3, 0.3, 0.6);
+	cylinder();
+	glPopMatrix();
+	glPushMatrix();
+	glTranslatef(10, 3, 0);
+	glScalef(0.3, 0.3, 0.6);
+	cylinder();
+	glPopMatrix();
+	glPushMatrix();
+	glTranslatef(10, -3, 0);
+	glScalef(0.3, 0.3, 0.6);
+	cylinder();
+	glPopMatrix();
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	
 	fountain->render();    // 绘制粒子系统
 
 	glPopMatrix();
@@ -263,6 +393,16 @@ void keyboard(unsigned char key, int x, int y) {    // 键盘回调函数
 		isPaused = !isPaused;
 		break;
 	}
+	case 'z': {
+		light0_position[0] = max(-9, light0_position[0] - 1);
+		glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+		break;
+	}
+	case 'x': {
+		light0_position[0] = min(9, light0_position[0] + 1);
+		glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+		break;
+	}
 	case '1': {
 		fountain->modelSelect = 1;
 		break;
@@ -283,7 +423,7 @@ void keyboard(unsigned char key, int x, int y) {    // 键盘回调函数
 	}
 	case '-': {
 		int num = fountain->waterFlowCount;
-		num = max(num - 1, 2);
+		num = max(num - 1, 1);
 		fountain->waterFlowCount = num;
 		break;
 	}
