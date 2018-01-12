@@ -185,7 +185,7 @@ void skybox() {    // 绘制天空盒
 	}
 }
 
-void cube() {
+void cube() {    // 画正方体
 	Vector3 v[8] = {
 		{ 1, 1, -1 },    // 0
 		{ -1, 1, -1 },    // 1
@@ -231,7 +231,7 @@ void cube() {
 	}
 }
 
-void cylinder() {
+void cylinder() {    // 画圆柱体
 	int n = 40;
 	for (int i = 0; i < n; ++i) {
 		glBegin(GL_QUADS);
@@ -288,8 +288,9 @@ void display(void) {    // 页面缓冲刷新时的回调函数
 	glColor4f(0, 0, 0, 1);
 	static GLuint marble = 0;
 	if (marble == 0) {
-		marble = LoadGLTexture("marble.bmp");
+		marble = LoadGLTexture("marble.bmp");    // 大理石纹理
 	}
+	// 绘制一张八仙桌和四个圆凳
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glBindTexture(GL_TEXTURE_2D, marble);
@@ -393,12 +394,12 @@ void keyboard(unsigned char key, int x, int y) {    // 键盘回调函数
 		isPaused = !isPaused;
 		break;
 	}
-	case 'z': {
+	case 'z': {    // 光源位置左移
 		light0_position[0] = max(-9, light0_position[0] - 1);
 		glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
 		break;
 	}
-	case 'x': {
+	case 'x': {    // 光源位置右移
 		light0_position[0] = min(9, light0_position[0] + 1);
 		glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
 		break;
